@@ -9,7 +9,7 @@ namespace EzApiCore.Data
         public EzApiCoreContext CreateDbContext(string[] args)
         {
             var optionsBuilder = new DbContextOptionsBuilder<EzApiCoreContext>();
-            optionsBuilder.UseSqlServer("Server=.;Database=Northwind;Trusted_Connection=True;");
+            optionsBuilder.UseSqlServer("Server=.;Database=EzApiCore;Trusted_Connection=True;");
             return new EzApiCoreContext(optionsBuilder.Options);
         }
     }

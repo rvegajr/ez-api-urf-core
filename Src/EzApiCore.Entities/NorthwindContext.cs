@@ -29,7 +29,7 @@ namespace EzApiCore.Data.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer(@"Server=.;Database=Northwind;Trusted_Connection=True;");
+                optionsBuilder.UseSqlServer(@"Server=.;Database=Northwind;User Id=localsysadmin;Password=localsysadmin;");
             }
         }
 

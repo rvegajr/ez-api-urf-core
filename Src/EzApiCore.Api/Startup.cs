@@ -37,6 +37,7 @@ namespace EzApiCore.Api
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+            //services.AddControllers(mvcOptions => mvcOptions.EnableEndpointRouting = false);
             services.AddOData();
             UnityConfiguration(services);
         }
@@ -54,13 +55,23 @@ namespace EzApiCore.Api
             app.UseRouting();
 
             app.UseAuthorization();
-
+            /* Migrating 2.X to 3.1 - https://docs.microsoft.com/en-us/aspnet/core/migration/22-to-30?view=aspnetcore-3.1&tabs=visual-studio
+             * OData Temporary Fix for 3.1 - https://devblogs.microsoft.com/odata/experimenting-with-odata-in-asp-net-core-3-1/
+             * Odata does not support the End points yet
+            */
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
-                endpoints.Select().Filter().OrderBy().Count().MaxTop(10);
-                endpoints.MapODataRoute("odata", "odata", GetEdmModel());
+                endpoints.Select().Expand().Filter().OrderBy().MaxTop(1000).Count();
+                endpoints.MapODataRoute("ODataRoute", "odata", GetEdmModel());
             });
+            /*
+            app.UseMvc(routeBuilder =>
+            {
+                routeBuilder.Select().Expand().Filter().OrderBy().MaxTop(1000).Count();
+                routeBuilder.MapODataServiceRoute("odata", "odata", GetEdmModel());
+            });
+            */
         }
 
         private void UnityConfiguration(IServiceCollection services) {
