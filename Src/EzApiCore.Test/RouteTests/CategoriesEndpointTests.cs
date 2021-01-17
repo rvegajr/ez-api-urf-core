@@ -8,19 +8,19 @@ using Xunit;
 
 namespace EzApiCore.RouteTests
 {
-    public class CustomersTests : IClassFixture<TestFixture<Startup>>
+    public class CategoriesEndpointTests : IClassFixture<TestFixture<Startup>>
     {
         private HttpClient Client;
 
-        public CustomersTests(TestFixture<Startup> fixture)
+        public CategoriesEndpointTests(TestFixture<Startup> fixture)
         {
             Client = fixture.Client;
         }
 
         [Fact]
-        public async Task CustomersAsyncTest()
+        public async Task CategoriesAsyncTest()
         {
-            var request = "/odata/Customers?$top=2";
+            var request = "/odata/Categoriess?$top=2";
             var response = await Client.GetAsync(request);
             response.EnsureSuccessStatusCode();
             var json = await response.Content.ReadAsStringAsync();

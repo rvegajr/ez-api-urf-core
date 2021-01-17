@@ -1,10 +1,29 @@
 ﻿using System;
-namespace EzApiCore.Test.RouteTests
+using System.Net.Http;
+using System.Threading.Tasks;
+using EzApiCore.Api;
+using EzApiCore.Test;
+using Newtonsoft.Json;
+using Xunit;
+
+namespace EzApiCore.RouteTests
 {
-    public class CustomerEndpointTests
+    public class CustomersEndpointTests : IClassFixture<TestFixture<Startup>>
     {
-        public CustomerEndpointTests()
+        private HttpClient Client;
+
+        public CustomersEndpointTests(TestFixture<Startup> fixture)
         {
+            Client = fixture.Client;
+        }
+
+        [Fact]
+        public async Task CustomersAsyncTest()
+        {
+            var request = "/odata/Customerss?$top=2";
+            var response = await Client.GetAsync(request);
+            response.EnsureSuccessStatusCode();
+            var json = await response.Content.ReadAsStringAsync();
         }
     }
 }
