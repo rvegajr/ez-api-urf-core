@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -30,6 +31,8 @@ namespace EzApiCore.Api
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "EzApiCore.Api", Version = "v1" });
+                c.DocumentFilter<CustomDocumentFilter>();
+                c.ResolveConflictingActions(CustomDocumentFilter.fResolveConflictingActions);
             });
         }
 
@@ -53,4 +56,5 @@ namespace EzApiCore.Api
             });
         }
     }
+
 }

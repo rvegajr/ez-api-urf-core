@@ -29,17 +29,14 @@ namespace EzApiCore.Api.OData
             _unitOfWork = unitOfWork;
         }
 
-        // GET: api/Categories
-        [HttpGet]
         [ODataRoute]
-        [EnableQuery(MaxExpansionDepth = 10, MaxNodeCount = 500)]
+        [HttpGet]
         public IEnumerable<Categories> GetAll()
-        {
-            return _categoriesService.Queryable();
+        {            return _categoriesService.Queryable();
         }
 
-        [HttpGet]
         [ODataRoute("({key})")]
+        [HttpGet(Name = nameof(GetItem))]
         [EnableQuery(MaxExpansionDepth = 10, MaxNodeCount = 500)]
         public async Task<IActionResult> GetItem([FromODataUri] int key)
         {
