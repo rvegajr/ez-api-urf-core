@@ -4,4 +4,7 @@
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="URF.Core.Services" Version="3.1.3" />
+  </ItemGroup>
 </Project>

@@ -29,13 +29,14 @@ namespace EzApiCore.Api.OData
             _unitOfWork = unitOfWork;
         }
 
-        [ODataRoute]
+        [ODataRoute("")]
         [HttpGet]
         public IEnumerable<Categories> GetAll()
-        {            return _categoriesService.Queryable();
+        {
+            return _categoriesService.Queryable();
         }
 
-        [ODataRoute("({key})")]
+        [ODataRoute("idata/[Controller]/{key}")]
         [HttpGet(Name = nameof(GetItem))]
         [EnableQuery(MaxExpansionDepth = 10, MaxNodeCount = 500)]
         public async Task<IActionResult> GetItem([FromODataUri] int key)
