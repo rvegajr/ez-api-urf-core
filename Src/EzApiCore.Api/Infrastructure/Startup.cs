@@ -46,6 +46,7 @@ namespace EzApiCore.Api
         {
 
             services.AddControllers();
+            (new UnityBuilder(Configuration)).UnityConfiguration(services);
 
             services.AddOData(opt => opt.Count().Filter().Expand().Select().OrderBy().SetMaxTop(100)
                     .AddModel("odata", model)
@@ -61,13 +62,17 @@ namespace EzApiCore.Api
                 {
                     inputFormatter.SupportedMediaTypes.Add(new MediaTypeHeaderValue("application/prs.odatatestxx-odata"));
                 }
+                options.Conventions.Add(new ApiExplorerIgnores());
             }).AddApiExplorer();
-            services.AddMvcCore(c => c.Conventions.Add(new ApiExplorerIgnores()));
 
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "EzApiCore.Api", Version = "v1" });
                 c.ResolveConflictingActions(CustomDocumentFilter.fResolveConflictingActions);
+                c.SwaggerGeneratorOptions.IgnoreHttpAttributeMissing = true;
+                c.SwaggerGeneratorOptions.DocumentFilters.Add(new ODataRenderDocumentFilter());
+                c.SwaggerGeneratorOptions.OperationFilters.Add(new ODataOperationFilter());
+                c.SwaggerGeneratorOptions.RequestBodyFilters.Add(new ODataRequestBodyFilter());
             });
         }
 

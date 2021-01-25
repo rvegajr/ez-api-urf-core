@@ -19,7 +19,7 @@ namespace EzApiCore.Api
         }
 
         public IConfiguration Configuration { get; }
-        private void UnityConfiguration(IServiceCollection services)
+        public void UnityConfiguration(IServiceCollection services)
         {
             var connectionString = Configuration.GetConnectionString(nameof(EzApiCoreContext));
             services.AddDbContext<EzApiCoreContext>(options => options.UseSqlServer(connectionString));
@@ -33,7 +33,6 @@ namespace EzApiCore.Api
             // Example: extending IRepository<TEntity>, scope: application-wide and IService<TEntity>, scope: ICustomerService
             services.AddScoped<IRepositoryX<Customers>, RepositoryX<Customers>>();
             services.AddScoped<ICustomerService, CustomerService>();
-
 
             services.AddScoped<ITrackableRepository<Categories>, TrackableRepository<Categories>>();
             services.AddScoped<ICategoriesService, CategoriesService>();

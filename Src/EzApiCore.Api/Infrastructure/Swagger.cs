@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
@@ -63,6 +64,117 @@ namespace EzApiCore.Api
             return description;
         }
     }
+
+    internal class ODataRequestBodyFilter : IRequestBodyFilter
+    {
+        public void Apply(OpenApiRequestBody requestBody, RequestBodyFilterContext context)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    internal class ODataOperationFilter : IOperationFilter
+    {
+        public void Apply(OpenApiOperation operation, OperationFilterContext context)
+        {
+            //throw new NotImplementedException();
+        }
+    }
+
+    /// <summary></summary>
+    internal class ODataRenderDocumentFilter : IDocumentFilter
+    {
+        public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
+        {
+            //throw new NotImplementedException();
+        }
+
+        /*
+        /// <summary></summary>
+        public void Apply(SwaggerDocument swaggerDoc, SchemaRegistry schemaRegistry, IApiExplorer apiExplorer)
+        {
+
+            var thisAssemblyTypes = Assembly.GetExecutingAssembly().GetTypes().ToList();
+
+            var odatacontrollers = thisAssemblyTypes.Where(t => t.IsSubclassOf(typeof(ODataController))).ToList();
+            var odataRoutes = GlobalConfiguration.Configuration.Routes.Where(a => a.GetType() == typeof(ODataRoute)).ToList();
+
+            if (!odataRoutes.Any() || !odatacontrollers.Any()) return;
+            var odatamethods = new[] { "Get", "Put", "Post", "Delete" };
+
+            var route = odataRoutes.FirstOrDefault() as ODataRoute;
+
+            foreach (var odataContoller in odatacontrollers)  // this is all of the OData controllers in your API
+            {
+                var methods = odataContoller.GetMethods().Where(a => odatamethods.Contains(a.Name)).ToList();
+                if (!methods.Any())
+                    continue; // next controller -- this one doesn't have any applicable methods
+
+                foreach (var method in methods)  // this is all of the methods for a SINGLE controller (e.g. GET, POST, PUT, etc)
+                {
+                    var path = "/" + route.RoutePrefix + "/" + odataContoller.Name.Replace("Controller", "");
+
+                    if (swaggerDoc.paths.ContainsKey(path))
+                    {
+                        Debug.WriteLine("Path " + path + " already exists");
+                        Console.WriteLine("Path " + path + " already exists");
+                        continue;
+                    }
+
+                    var odataPathItem = new PathItem();
+                    var op = new Operation();
+
+                    // This is assuming that all of the odata methods will be listed under a heading called OData in the swagger doc
+                    op.tags = new List<string> { "OData" };
+                    op.operationId = "OData_" + odataContoller.Name.Replace("Controller", "");
+
+                    // This should probably be retrieved from XML code comments....
+                    op.summary = "Used to access odata endpoint for " + odataContoller.Name.Replace("Controller", "");
+                    var exampleText = @"Some common OData examples are:<br/>
+<a href='{0}/api/{1}' target=""_blank"">{0}/api/{1}</a> - Will get all objects of this type<br/>
+<a href='{0}/api/{1}(1)' target=""_blank"">{0}/api/{1}(1)</a> - Will get the object of id=1<br/>
+<a href='{0}/api/{1}?$top=2' target=""_blank"">{0}/api/{1}?$top=2</a>  Will get the Top 2 records<br/>
+<a href='{0}/api/{1}?$select=FieldA%2CFieldB' target=""_blank"">{0}/api/{1}?$select=FieldA%2CFieldB</a> - Will select FieldA and FieldB only (obviously these fields need to exist in the table)";
+                    op.description = string.Format(exampleText, "http://" + swaggerDoc.host, odataContoller.Name.Replace("Controller", ""));
+
+                    op.consumes = new List<string>();
+                    op.produces = new List<string> { "application/json", "text/json" };
+                    op.deprecated = false;
+
+                    var response = new Response() { description = "OK" };
+                    response.schema = new Schema { type = "array", items = schemaRegistry.GetOrRegister(method.ReturnType) };
+                    op.responses = new Dictionary<string, Response> { { "200", response } };
+
+                    var security = GetSecurityForOperation(odataContoller);
+                    if (security != null)
+                        op.security = new List<IDictionary<string, IEnumerable<string>>> { security };
+
+                    odataPathItem.get = op;   // this needs to be a switch based on the method name
+                    if (swaggerDoc.paths.ContainsKey(path))
+                    {
+                        Debug.WriteLine("Path " + path + " already exists");
+                        Console.WriteLine("Path " + path + " already exists");
+                    }
+                    else
+                    {
+                        swaggerDoc.paths.Add(path, odataPathItem);
+                    }
+                }
+            }
+        }
+        */
+
+        private Dictionary<string, IEnumerable<string>> GetSecurityForOperation(MemberInfo odataContoller)
+        {
+            Dictionary<string, IEnumerable<string>> securityEntries = null;
+            if (odataContoller.GetCustomAttribute(typeof(AuthorizeAttribute)) != null)
+            {
+                securityEntries = new Dictionary<string, IEnumerable<string>> { { "oauth2", new[] { "actioncenter" } } };
+            }
+            return securityEntries;
+        }
+    }
+
     internal sealed class ApiParameterDescriptionEqualityComparer : IEqualityComparer<ApiParameterDescription>
     {
         private static readonly Lazy<ApiParameterDescriptionEqualityComparer> _instance

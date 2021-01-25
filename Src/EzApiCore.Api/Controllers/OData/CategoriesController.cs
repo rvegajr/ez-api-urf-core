@@ -12,9 +12,7 @@ using Microsoft.AspNetCore.OData.Routing.Attributes;
 
 namespace EzApiCore.Api.OData
 {
-    [ODataRoutePrefix("Categories")]
-    [ApiController]
-    [Route("Categories")]
+    [Route("~/odata/[Controller]")]
     public class CategoriesController : ODataController
     {
         private readonly ICategoriesService _categoriesService;
@@ -29,17 +27,15 @@ namespace EzApiCore.Api.OData
             _unitOfWork = unitOfWork;
         }
 
-        [ODataRoute("")]
-        [HttpGet]
+        [HttpGet("")]
         public IEnumerable<Categories> GetAll()
         {
             return _categoriesService.Queryable();
         }
 
-        [ODataRoute("idata/[Controller]/{key}")]
-        [HttpGet(Name = nameof(GetItem))]
+        [HttpGet("{key}")]
         [EnableQuery(MaxExpansionDepth = 10, MaxNodeCount = 500)]
-        public async Task<IActionResult> GetItem([FromODataUri] int key)
+        public async Task<IActionResult> GetItem(int key)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -52,9 +48,8 @@ namespace EzApiCore.Api.OData
             return Ok(categories);
         }
 
-        [HttpPut]
-        [ODataRoute("({key})")]
-        public async Task<IActionResult> PutItem([FromODataUri] int key, [FromBody] Categories categories)
+        [HttpPut("{key}")]
+        public async Task<IActionResult> PutItem(int key, [FromBody] Categories categories)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -78,8 +73,7 @@ namespace EzApiCore.Api.OData
             return NoContent();
         }
 
-        [HttpPost]
-        [ODataRoute]
+        [HttpPost("")]
         public async Task<IActionResult> PostItem([FromBody] Categories categories)
         {
             if (!ModelState.IsValid)
@@ -91,10 +85,10 @@ namespace EzApiCore.Api.OData
             return CreatedAtAction("Get", new { key = categories.CategoryId }, categories);
         }
 
-        [HttpPatch]
-        [AcceptVerbs("PATCH")]
-        [ODataRoute("({key})")]
-        public async Task<IActionResult> PatchItem([FromODataUri] int key, [FromBody] Delta<Categories> categories)
+        /*         [AcceptVerbs("PATCH")]
+        */
+    [HttpPatch("{key}")]
+        public async Task<IActionResult> PatchItem([int key, [FromBody] Delta<Categories> categories)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -120,9 +114,8 @@ namespace EzApiCore.Api.OData
             return Updated(entity);
         }
 
-        [HttpDelete]
-        [ODataRoute]
-        public async Task<IActionResult> DeleteItem([FromODataUri] int key)
+        [HttpDelete("{key}")]
+        public async Task<IActionResult> DeleteItem(int key)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
