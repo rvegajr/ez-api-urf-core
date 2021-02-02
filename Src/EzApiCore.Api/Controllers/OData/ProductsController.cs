@@ -5,28 +5,29 @@ using Microsoft.AspNet.OData;
 using URF.Core.Abstractions;
 using EzApiCore.Data.Models;
 using Microsoft.EntityFrameworkCore;
+using EzApiCore.Service;
 
 namespace EzApiCore.Api.OData
 {
     [Route("~/odata/[Controller]")]
-    public class CategoriesController : ODataController
+    public class ProductsController : ODataController
     {
-        private readonly ICategoriesService _categoriesService;
+        private readonly IProductService _productsService;
         private readonly IUnitOfWork _unitOfWork;
 
-        public CategoriesController(
-            ICategoriesService categoriesService,
+        public ProductsController(
+            IProductService productsService,
             IUnitOfWork unitOfWork
         )
         {
-            _categoriesService = categoriesService;
+            _productsService = productsService;
             _unitOfWork = unitOfWork;
         }
 
         [HttpGet("")]
-        public IEnumerable<Categories> GetAll()
+        public IEnumerable<Products> GetAll()
         {
-            return _categoriesService.Queryable();
+            return _productsService.Queryable();
         }
 
         [HttpGet("{key}")]
@@ -36,24 +37,24 @@ namespace EzApiCore.Api.OData
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var categories = await _categoriesService.FindAsync(key);
+            var products = await _productsService.FindAsync(key);
 
-            if (categories == null)
+            if (products == null)
                 return NotFound();
 
-            return Ok(categories);
+            return Ok(products);
         }
 
         [HttpPut("{key}")]
-        public async Task<IActionResult> PutItem(int key, [FromBody] Categories categories)
+        public async Task<IActionResult> PutItem(int key, [FromBody] Products products)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (key != categories.CategoryId)
+            if (key != products.ProductId)
                 return BadRequest();
-            
-            _categoriesService.Update(categories);
+
+            _productsService.Update(products);
 
             try
             {
@@ -61,7 +62,7 @@ namespace EzApiCore.Api.OData
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!await _categoriesService.ExistsAsync(key))
+                if (!await _productsService.ExistsAsync(key))
                     return NotFound();
                 throw;
             }
@@ -70,31 +71,31 @@ namespace EzApiCore.Api.OData
         }
 
         [HttpPost("")]
-        public async Task<IActionResult> PostItem([FromBody] Categories categories)
+        public async Task<IActionResult> PostItem([FromBody] Products products)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            _categoriesService.Insert(categories);
+            _productsService.Insert(products);
 
             await _unitOfWork.SaveChangesAsync();
-            return CreatedAtAction("Get", new { key = categories.CategoryId }, categories);
+            return CreatedAtAction("Get", new { key = products.ProductId }, products);
         }
 
         /*         [AcceptVerbs("PATCH")]
         */
-    [HttpPatch("{key}")]
-        public async Task<IActionResult> PatchItem(int key, [FromBody] Delta<Categories> categories)
+        [HttpPatch("{key}")]
+        public async Task<IActionResult> PatchItem(int key, [FromBody] Delta<Products> products)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var entity = await _categoriesService.FindAsync(key);
+            var entity = await _productsService.FindAsync(key);
             if (entity == null)
                 return NotFound();
 
-            categories.Patch(entity);
-            _categoriesService.Update(entity);
+            products.Patch(entity);
+            _productsService.Update(entity);
 
             try
             {
@@ -102,7 +103,7 @@ namespace EzApiCore.Api.OData
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!await _categoriesService.ExistsAsync(key))
+                if (!await _productsService.ExistsAsync(key))
                     return NotFound();
                 throw;
             }
@@ -116,7 +117,7 @@ namespace EzApiCore.Api.OData
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var result = await _categoriesService.DeleteAsync(key);
+            var result = await _productsService.DeleteAsync(key);
 
             if (!result)
                 return NotFound();

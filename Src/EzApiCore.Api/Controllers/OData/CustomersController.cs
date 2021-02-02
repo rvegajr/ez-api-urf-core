@@ -5,55 +5,56 @@ using Microsoft.AspNet.OData;
 using URF.Core.Abstractions;
 using EzApiCore.Data.Models;
 using Microsoft.EntityFrameworkCore;
+using EzApiCore.Service;
 
 namespace EzApiCore.Api.OData
 {
     [Route("~/odata/[Controller]")]
-    public class CategoriesController : ODataController
+    public class CustomersController : ODataController
     {
-        private readonly ICategoriesService _categoriesService;
+        private readonly ICustomerService _customersService;
         private readonly IUnitOfWork _unitOfWork;
 
-        public CategoriesController(
-            ICategoriesService categoriesService,
+        public CustomersController(
+            ICustomerService customersService,
             IUnitOfWork unitOfWork
         )
         {
-            _categoriesService = categoriesService;
+            _customersService = customersService;
             _unitOfWork = unitOfWork;
         }
 
         [HttpGet("")]
-        public IEnumerable<Categories> GetAll()
+        public IEnumerable<Customers> GetAll()
         {
-            return _categoriesService.Queryable();
+            return _customersService.Queryable();
         }
 
         [HttpGet("{key}")]
         [EnableQuery(MaxExpansionDepth = 10, MaxNodeCount = 500)]
-        public async Task<IActionResult> GetItem(int key)
+        public async Task<IActionResult> GetItem(string key)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var categories = await _categoriesService.FindAsync(key);
+            var customers = await _customersService.FindAsync(key);
 
-            if (categories == null)
+            if (customers == null)
                 return NotFound();
 
-            return Ok(categories);
+            return Ok(customers);
         }
 
         [HttpPut("{key}")]
-        public async Task<IActionResult> PutItem(int key, [FromBody] Categories categories)
+        public async Task<IActionResult> PutItem(string key, [FromBody] Customers customers)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (key != categories.CategoryId)
+            if (key != customers.CustomerId)
                 return BadRequest();
-            
-            _categoriesService.Update(categories);
+
+            _customersService.Update(customers);
 
             try
             {
@@ -61,7 +62,7 @@ namespace EzApiCore.Api.OData
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!await _categoriesService.ExistsAsync(key))
+                if (!await _customersService.ExistsAsync(key))
                     return NotFound();
                 throw;
             }
@@ -70,31 +71,31 @@ namespace EzApiCore.Api.OData
         }
 
         [HttpPost("")]
-        public async Task<IActionResult> PostItem([FromBody] Categories categories)
+        public async Task<IActionResult> PostItem([FromBody] Customers customers)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            _categoriesService.Insert(categories);
+            _customersService.Insert(customers);
 
             await _unitOfWork.SaveChangesAsync();
-            return CreatedAtAction("Get", new { key = categories.CategoryId }, categories);
+            return CreatedAtAction("Get", new { key = customers.CustomerId }, customers);
         }
 
         /*         [AcceptVerbs("PATCH")]
         */
-    [HttpPatch("{key}")]
-        public async Task<IActionResult> PatchItem(int key, [FromBody] Delta<Categories> categories)
+        [HttpPatch("{key}")]
+        public async Task<IActionResult> PatchItem(string key, [FromBody] Delta<Customers> customers)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var entity = await _categoriesService.FindAsync(key);
+            var entity = await _customersService.FindAsync(key);
             if (entity == null)
                 return NotFound();
 
-            categories.Patch(entity);
-            _categoriesService.Update(entity);
+            customers.Patch(entity);
+            _customersService.Update(entity);
 
             try
             {
@@ -102,7 +103,7 @@ namespace EzApiCore.Api.OData
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!await _categoriesService.ExistsAsync(key))
+                if (!await _customersService.ExistsAsync(key))
                     return NotFound();
                 throw;
             }
@@ -111,12 +112,12 @@ namespace EzApiCore.Api.OData
         }
 
         [HttpDelete("{key}")]
-        public async Task<IActionResult> DeleteItem(int key)
+        public async Task<IActionResult> DeleteItem(string key)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var result = await _categoriesService.DeleteAsync(key);
+            var result = await _customersService.DeleteAsync(key);
 
             if (!result)
                 return NotFound();

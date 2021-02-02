@@ -1,123 +1,146 @@
-using EzApiCore.Data.Models;
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
+using System.IO;
+using System.Linq;
+using Microsoft.AspNet.OData.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ApiExplorer;
-using Microsoft.AspNetCore.Mvc.ApplicationModels;
-using Microsoft.AspNetCore.OData;
-using Microsoft.AspNetCore.OData.Formatter;
+using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
-using Microsoft.OData.Edm;
-using Microsoft.OData.ModelBuilder;
 using Microsoft.OpenApi.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using Orders.Api.Domain;
+using Orders.Api.Repository;
 
 namespace EzApiCore.Api
 {
-    public class ApiExplorerIgnores : IActionModelConvention
-    {
-        public void Apply(ActionModel action)
-        {
-            if (action.Controller.ControllerName.Contains("GetMetadata"))
-                action.ApiExplorer.IsVisible = false;
-        }
-    }
+    /// <summary>
+    ///     Configuration for the web app.
+    /// </summary>
     public class Startup
     {
-        private IEdmModel model;
-
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="Startup" /> class.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
         public Startup(IConfiguration configuration)
         {
-            Configuration = configuration;
-            model = GetEdmModel();
+            this.Configuration = configuration;
         }
 
+        /// <summary>
+        ///     Gets the configuration.
+        /// </summary>
+        /// <value>
+        ///     The configuration.
+        /// </value>
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
+        /// <summary>
+        ///     This method gets called by the runtime. Use this method to add services to the container.
+        /// </summary>
+        /// <param name="services">The services.</param>
         public void ConfigureServices(IServiceCollection services)
         {
-
-            services.AddControllers();
-            (new UnityBuilder(Configuration)).UnityConfiguration(services);
-
-            services.AddOData(opt => opt.Count().Filter().Expand().Select().OrderBy().SetMaxTop(100)
-                    .AddModel("odata", model)
-                    );
-
-            services.AddMvcCore(options =>
+            services.AddControllers().AddNewtonsoftJson(x =>
             {
-                foreach (var outputFormatter in options.OutputFormatters.OfType<ODataOutputFormatter>().Where(_ => _.SupportedMediaTypes.Count == 0))
-                {
-                    outputFormatter.SupportedMediaTypes.Add(new MediaTypeHeaderValue("application/prs.odatatestxx-odata"));
-                }
-                foreach (var inputFormatter in options.InputFormatters.OfType<ODataInputFormatter>().Where(_ => _.SupportedMediaTypes.Count == 0))
-                {
-                    inputFormatter.SupportedMediaTypes.Add(new MediaTypeHeaderValue("application/prs.odatatestxx-odata"));
-                }
-                options.Conventions.Add(new ApiExplorerIgnores());
-            }).AddApiExplorer();
+                x.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+                x.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+                x.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+            });
 
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "EzApiCore.Api", Version = "v1" });
-                c.ResolveConflictingActions(CustomDocumentFilter.fResolveConflictingActions);
-                c.SwaggerGeneratorOptions.IgnoreHttpAttributeMissing = true;
-                c.SwaggerGeneratorOptions.DocumentFilters.Add(new ODataRenderDocumentFilter());
-                c.SwaggerGeneratorOptions.OperationFilters.Add(new ODataOperationFilter());
-                c.SwaggerGeneratorOptions.RequestBodyFilters.Add(new ODataRequestBodyFilter());
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "Orders Public API",
+                    Version = "v1",
+                    Description = "An open-source, .NET 5, OData-enabled, Web API that implements best practices around test-driven development, application layering, inversion of control, RESTful design, IO performance (async/await), and nullability.",
+                    Contact = new OpenApiContact
+                    {
+                        Name = "Richard Beauchamp",
+                        Email = string.Empty,
+                        Url = new Uri("https://github.com/rbeauchamp/orders-api"),
+                    },
+                });
+
+                c.EnableAnnotations();
+
+                // See https://stackoverflow.com/a/53886604
+                c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "Orders.Api.xml"));
+                c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "Orders.Api.Domain.xml"));
+                c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "Orders.Api.Model.xml"));
+                c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "Orders.Api.Repository.xml"));
             });
+
+            // services.AddSwaggerGenNewtonsoftSupport();
+            services.AddDbContext<IOrdersRepository, OrdersRepository>(optionsBuilder => optionsBuilder.UseSqlServer(this.Configuration.GetConnectionString("DefaultConnection")));
+
+            services.AddDatabaseDeveloperPageExceptionFilter();
+
+            services.AddScoped<IOrdersDomain, OrdersDomain>();
+            services.AddScoped<SubmitOrderValidator>();
+            services.AddScoped<UpdateOrderValidator>();
+
+            services.AddOData();
+
+            services.AddMvc(
+                options =>
+                {
+                    options.EnableEndpointRouting = false;
+
+                    // Required to generate swagger documentation for an API that has OData endpoints
+                    foreach (var outputFormatter in options.OutputFormatters.OfType<OutputFormatter>().Where(x => x.SupportedMediaTypes.Count == 0))
+                    {
+                        outputFormatter.SupportedMediaTypes.Add(new MediaTypeHeaderValue("application/prs.odatatestxx-odata"));
+                    }
+
+                    foreach (var inputFormatter in options.InputFormatters.OfType<InputFormatter>().Where(x => x.SupportedMediaTypes.Count == 0))
+                    {
+                        inputFormatter.SupportedMediaTypes.Add(new MediaTypeHeaderValue("application/prs.odatatestxx-odata"));
+                    }
+                });
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        /// <summary>
+        ///     This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        /// </summary>
+        /// <param name="app">The application.</param>
+        /// <param name="env">The env.</param>
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
+
             app.UseSwagger();
-            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "EzApiCore.Api v1"));
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Orders API v1");
+                c.EnableDeepLinking();
+            });
+
+            app.UseHttpsRedirection();
+            app.UseStaticFiles();
 
             app.UseRouting();
 
-            //app.UseAuthorization();
+            app.UseAuthorization();
 
-            app.UseEndpoints(endpoints =>
+            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+
+            app.UseMvc(routeBuilder =>
             {
-                endpoints.MapControllers();
+                routeBuilder.EnableDependencyInjection();
+                routeBuilder.Expand().Select().OrderBy().Filter().Count().MaxTop(10);
             });
-        }
-
-        private IEdmModel GetEdmModel()
-        {
-            var odataBuilder = new ODataConventionModelBuilder();
-            var categoriesEntitySetConfiguration = odataBuilder.EntitySet<Categories>(nameof(Categories));
-            categoriesEntitySetConfiguration.EntityType.HasKey(x => x.CategoryId);
-
-            var customersEntitySetConfiguration = odataBuilder.EntitySet<Customers>(nameof(Customers));
-            customersEntitySetConfiguration.EntityType.HasKey(x => x.CustomerId);
-            customersEntitySetConfiguration.EntityType.Ignore(x => x.CustomerCustomerDemo);
-            customersEntitySetConfiguration.EntityType.Ignore(x => x.Orders);
-
-            var productsEntitySetConfiguration = odataBuilder.EntitySet<Products>(nameof(Products));
-            productsEntitySetConfiguration.EntityType.HasKey(x => x.ProductId);
-            productsEntitySetConfiguration.EntityType.Ignore(x => x.Category);
-            productsEntitySetConfiguration.EntityType.Ignore(x => x.Supplier);
-
-            var orderDetailsEntitySetConfiguration = odataBuilder.EntitySet<OrderDetails>(nameof(OrderDetails));
-            orderDetailsEntitySetConfiguration.EntityType.HasKey(x => x.OrderId);
-            orderDetailsEntitySetConfiguration.EntityType.HasKey(x => x.ProductId);
-            orderDetailsEntitySetConfiguration.EntityType.Ignore(x => x.Order);
-
-            return odataBuilder.GetEdmModel();
         }
     }
 }
